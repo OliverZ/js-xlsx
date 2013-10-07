@@ -629,8 +629,10 @@ function parseProps(data) {
 		var j = 0, widx = 0;
 		for(var i = 0; i !== v.length; ++i) {
 			switch(v[i].v) {
+				case "ArbeitsblÃ¤tter":
 				case "Worksheets": widx = j; p.Worksheets = +v[++i]; break;
 				case "Named Ranges": ++i; break; // TODO: Handle Named Ranges
+				default: console.error("Unrecognized key in Heading Pairs: " + v[i++].v);
 			}
 		}
 		var parts = parseVector(q.TitlesOfParts).map(utf8read);
@@ -786,6 +788,8 @@ function parseWB(data) {
 			case '<mx:ArchID': break;
 			case '<mc:AlternateContent': pass=true; break;
 			case '</mc:AlternateContent>': pass=false; break;
+
+			default: if(!pass) console.error("WB Tag",x,y);
 		}
 	});
 	if(wb.xmlns !== XMLNS_WB) throw "Unknown Namespace: " + wb.xmlns;
@@ -931,11 +935,14 @@ if (typeof exports !== 'undefined') {
 function readSync(data, options) {
 	var zip, d = data;
 	var o = options||{};
+	
 	switch((o.type||"base64")){
 		case "file": d = _fs.readFileSync(data).toString('base64');
 			/* falls through */
 		case "base64": zip = new jszip(d, { base64:true }); break;
+
 		case "binary": zip = new jszip(d, { base64:false }); break;
+
 	}
 	return parseZip(zip);
 }
@@ -1035,7 +1042,7 @@ function sheet_to_csv(sheet) {
 			var row = [];
 			for(var C = r.s.c; C <= r.e.c; ++C) {
 				var val = sheet[utils.encode_cell({c:C,r:R})];
-				row.push(val ? stringify(val).replace(/\\r\\n/g,"\n").replace(/\\t/g,"\t").replace(/\\\\/g,"\\").replace("\\\"","\"\"") : "");
+				row.push(val ? stringify(val).replace(/\\r\\n/g,"\n").replace(/\\t/g,"\t").replace(/\\\\/g,"\\").replace(/\\\"/g,"\"\"") : "");
 			}
 			out += row.join(",") + "\n";
 		}
